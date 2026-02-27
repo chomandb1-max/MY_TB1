@@ -1,12 +1,12 @@
 import streamlit as st
 from supabase import create_client
+import os
 
-# ١. دامەزراندنی پەیوەندی
-# دڵنیابە لە دانانی URL و KEYـی خۆت
-url ="https://pdgraktldyyvrhqmnqij.supabase.co"
-key = "sb_publishable_83vkrjdter6X0Kg-LAiH0g_Q7ingMrv"
+# خوێندنەوەی زانیارییەکان لە Secrets
+url = st.secrets["SUPABASE_URL"]
+key = st.secrets["SUPABASE_KEY"]
+
 supabase = create_client(url, key)
-
 # ٢. فانکشنەکان (Logic)
 def get_data():
     return supabase.table("TB1").select("*").execute().data
