@@ -2,58 +2,56 @@ import streamlit as st
 from supabase import create_client
 import os
 
-# خوێندنەوەی زانیارییەکان لە Secrets
+# پەیوەندیکردن بە سوپابەیس بە بەکارهێنانی Secrets
 url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
-
 supabase = create_client(url, key)
-# ٢. فانکشنەکان (Logic)
+
+# دیزاینی ڕوکار
+st.set_page_config(page_title="سیستەمی TB1", layout="centered")
+
+# فانکشنەکان
 def get_data():
     return supabase.table("TB1").select("*").execute().data
 
-def add_data(name):
-    return supabase.table("TB1").insert({"name": name}).execute()
-
-def update_data(item_id, new_name):
-    return supabase.table("TB1").update({"name": new_name}).eq("id", item_id).execute()
-
-def delete_data(item_id):
-    return supabase.table("TB1").delete().eq("id", item_id).execute()
-
-# ٣. ڕوکاری مۆبایل (UI)
-st.set_page_config(page_title="ئەپی TB1", layout="centered")
-
+# مێنوی سەرەکی
 with st.sidebar:
-    st.title("بەڕێوەبەری ئەپ")
-    choice = st.radio("بەشەکان:", ["بینینی داتا", "زیادکردن", "دەستکاری و سڕینەوە"])
+    st.title("⚙️ بەڕێوەبەری ئەپ")
+    choice = st.radio("بەشەکان:", ["بینین و سێرچ", "زیادکردن", "بەڕێوەبردن"])
 
-# ٤. جێبەجێکردنی بەشەکان
-if choice == "بینینی داتا":
-    st.subheader("داتاکانی تەیبڵی TB1")
+# بەشی بینین و سێرچ
+if choice == "بینین و سێرچ":
+    st.subheader("📊 داتاکانی TB1")
     data = get_data()
+    
     if data:
-        st.dataframe(data, use_container_width=True)
+        # ژماردنی کۆی بەشداربووان
+        st.metric(label="کۆی بەشداربووان", value=len(data))
+        
+        # بەشی سێرچ
+        search = st.text_input("🔍 گەڕان بەدوای ناوێکدا...")
+        if search:
+            filtered = [item for item in data if search.lower() in item['name'].lower()]
+            st.dataframe(filtered, use_container_width=True)
+        else:
+            st.dataframe(data, use_container_width=True)
     else:
         st.info("هیچ داتایەک نەدۆزرایەوە.")
 
+# بەشی زیادکردن
 elif choice == "زیادکردن":
-    st.subheader("زیادکردنی ناوی نوێ")
-    name = st.text_input("ناو:")
-    if st.button("زیادکردن"):
-        add_data(name)
-        st.success(f"سەرکەوتوو بوو: {name} زیاد کرا!")
+    st.subheader("➕ زیادکردنی ناوی نوێ")
+    new_name = st.text_input("ناو بنووسە:")
+    if st.button("تۆمارکردن"):
+        supabase.table("TB1").insert({"name": new_name}).execute()
+        st.success("بە سەرکەوتوویی زیاد کرا! ✅")
 
-elif choice == "دەستکاری و سڕینەوە":
-    st.subheader("بەڕێوەبردن")
+# بەشی بەڕێوەبردن (سڕینەوە)
+elif choice == "بەڕێوەبردن":
+    st.subheader("🗑️ سڕینەوە و دەستکاری")
     item_id = st.number_input("ژمارەی ID:", step=1)
-    new_name = st.text_input("ناوی نوێ (بۆ دەستکاری):")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("نوێکردنەوە"):
-            update_data(item_id, new_name)
-            st.rerun()
-    with col2:
-        if st.button("سڕینەوە"):
-            delete_data(item_id)
-            st.rerun()
+    if st.button("سڕینەوەی ئەم IDـیە"):
+        supabase.table("TB1").delete().eq("id", item_id).execute()
+        st.warning("بەشداربووەکە سڕایەوە.")
+        st.rerun()
